@@ -16,10 +16,10 @@ int main(){
   earth.ypos = 0;
   earth.xvel = 0;
   earth.yvel = 0;
-  earth.mass = 5.972 * pow(10, 24);
+  earth.mass = 5.972 * powl(10, 24);
   earth.next = NULL;
   ecsystem.tickspersec = 1000;
-  step_forward(&cat, ecsystem, 10000);
-  printf("xpos: %Le, xvel: %Le\n", cat.xpos, cat.xvel);
+  step_forward(&cat, ecsystem, 1000);
+  printf("xpos: %Lf, xvel: %Lf\n", cat.xpos, cat.xvel);
   return 0;
 }

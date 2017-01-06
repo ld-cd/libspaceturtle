@@ -17,7 +17,7 @@ int step_forward(struct body * root, struct world_config config, unsigned long l
 	  current_body2 = current_body2->next;
 	x_dist = current_body1->xpos - current_body2->xpos;
 	y_dist = current_body1->ypos - current_body2->ypos;
-	distance = sqrt(pow(x_dist, 2) + pow(y_dist, 2));
+	distance = sqrt(powl(x_dist, 2) + powl(y_dist, 2));
 	accel = CALCACCEL(distance, current_body2->mass);
 	x_accel += sinl(atanl(x_dist / y_dist)) * accel;
 	y_accel += cosl(atanl(x_dist / y_dist)) * accel;

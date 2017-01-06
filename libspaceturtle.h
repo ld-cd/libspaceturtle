@@ -1,6 +1,8 @@
 #ifndef LIBSPACETURTLE
 #define LIBSPACETURTLE
-#define G 0.00000000006674
+#include <math.h>
+
+#define G 0.0000000000667408
 #define CALCACCEL(d, m) G * m / (d * d)
 
 struct body{
