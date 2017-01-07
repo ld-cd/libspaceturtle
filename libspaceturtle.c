@@ -16,13 +16,13 @@ int step_forward(struct body * root, struct world_config config, unsigned long l
       y_accel = 0;
       current_body2 = root;
       while(current_body2 != NULL){
-	if(current_body1 == current_body2 || current_body2->mass == 0){
-	  if(current_body2->next == NULL){
+	while((current_body2->next == current_body1->next) || (current_body2->mass == 0.0)){
+	  current_body2 = current_body2->next;
+	  if(current_body2 == NULL)
 	    break;
-	  } else{
-	    current_body2 = current_body2->next;
-	  }
 	}
+	if(current_body2 == NULL)
+	  break;
 	x_dist = current_body1->xpos - current_body2->xpos;
 	y_dist = current_body1->ypos - current_body2->ypos;
 	distance = sqrt(powl(x_dist, 2) + powl(y_dist, 2));
