@@ -19,5 +19,7 @@ struct world_config{
 };
 
 int step_forward(struct body * root, struct world_config config, unsigned long long int ticks);
+struct body * add_body(long double xpos, long double ypos, long double xvel, long double yvel, long double mass, struct body * root, struct body * parent);
+struct body * delete_body(struct body * object, struct body * root);
 
 #endif

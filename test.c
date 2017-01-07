@@ -4,22 +4,14 @@
 #include "libspaceturtle.h"
 
 int main(){
-  struct body earth, cat;
+  struct body * earth, * cat;
   struct world_config ecsystem; //earthcatsystem
-  cat.xpos = 0;
-  cat.ypos = 0;
-  cat.xvel = 0;
-  cat.yvel = 0;
-  cat.mass = 10;
-  cat.next = &earth;
-  earth.xpos = 6371000;
-  earth.ypos = 0;
-  earth.xvel = 0;
-  earth.yvel = 0;
-  earth.mass = 5.972 * powl(10, 24);
-  earth.next = NULL;
+  earth = add_body(0, 0, 0, 0, 5.972 * powl(10, 24), NULL, NULL);
+  cat = add_body(6771000, 0, 0, 7667, 10, earth, earth);
   ecsystem.tickspersec = 1000;
-  step_forward(&cat, ecsystem, 1000);
-  printf("xpos: %Lf, xvel: %Lf\n", cat.xpos, cat.xvel);
+  for(int i = 0; i <= 100; i++){
+    step_forward(earth, ecsystem, 60000);
+    printf("minute: %5d, xpos: %12Lf, ypos: %12Lf, xvel: %12Lf, yvel: %12Lf\n", i + 1, cat->xpos / 1000, cat->ypos / 1000, cat->xvel, cat->yvel);
+  }
   return 0;
 }
