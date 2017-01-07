@@ -27,14 +27,8 @@ int step_forward(struct body * root, struct world_config config, unsigned long l
 	y_dist = current_body1->ypos - current_body2->ypos;
 	distance = sqrt(powl(x_dist, 2) + powl(y_dist, 2));
 	accel = CALCACCEL(distance, current_body2->mass);
-	if(x_dist < 0)
-	  x_accel += fabsl(sinl(atanl(x_dist / y_dist)) * accel);
-	else
-	  x_accel -= fabsl(sinl(atanl(x_dist / y_dist)) * accel);
-	if(y_dist < 0)
-	  y_accel += fabsl(cosl(atanl(x_dist / y_dist)) * accel);
-	else
-	  y_accel -= fabsl(cosl(atanl(x_dist / y_dist)) * accel);
+	x_accel += -1 * accel * (x_dist / distance);
+	y_accel += -1 * accel * (y_dist / distance);
 	current_body2 = current_body2 -> next;
       }
       current_body1->xvel += x_accel / config.tickspersec;
