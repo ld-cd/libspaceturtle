@@ -16,7 +16,7 @@ int step_forward(struct body * root, struct world_config config, unsigned long l
       y_accel = 0;
       current_body2 = root;
       while(current_body2 != NULL){
-	if(current_body1 == current_body2){
+	if(current_body1 == current_body2 || current_body2->mass == 0){
 	  if(current_body2->next == NULL){
 	    break;
 	  } else{

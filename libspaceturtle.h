@@ -12,6 +12,7 @@ struct body{
   long double yvel; 
   long double mass; // kg
   struct body * next;
+  void * attribs; // your application can stick whatever it wants here
 };
 
 struct world_config{
