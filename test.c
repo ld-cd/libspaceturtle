@@ -6,8 +6,8 @@
 int main(){
   struct body * earth, * cat;
   struct world_config ecsystem; //earthcatsystem
-  earth = add_body(0, 0, 0, 0, 5.972 * powl(10, 24), NULL, NULL);
-  cat = add_body(6771000, 0, 0, 7667, 10, earth, earth);
+  earth = add_body(0, 0, 0, 0, 5.972 * powl(10, 24), NULL, NULL, NULL);
+  cat = add_body(6771000, 0, 0, 7667, 10, NULL, earth, earth);
   ecsystem.tickspersec = 1000;
   for(int i = 0; i <= 100; i++){
     step_forward(earth, ecsystem, 60000);

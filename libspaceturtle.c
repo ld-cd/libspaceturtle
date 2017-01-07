@@ -41,7 +41,7 @@ int step_forward(struct body * root, struct world_config config, unsigned long l
   return 0;
 }
 
-struct body * add_body(long double xpos, long double ypos, long double xvel, long double yvel, long double mass, struct body * root, struct body * parent){
+struct body * add_body(long double xpos, long double ypos, long double xvel, long double yvel, long double mass, void * attribs, struct body * parent, struct body * root){
   struct body * object = malloc(sizeof(struct body));
   if(!parent){
     object->xpos = xpos;
@@ -56,6 +56,7 @@ struct body * add_body(long double xpos, long double ypos, long double xvel, lon
     object->yvel = yvel + parent->yvel;
   }
   object->next = NULL;
+  object->attribs = attribs;
   object->mass = mass;
   if(!root)
     return object;
