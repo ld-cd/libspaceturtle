@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -g -std=gnu99 -I.
+CFLAGS = -std=gnu99 -I. -fPIC
 LDFLAGS = -lm
 
 libspaceturtle.so: libspaceturtle.o
