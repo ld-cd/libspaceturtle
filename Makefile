@@ -2,6 +2,7 @@ NAME := spaceturtle
 CC := gcc
 CFLAGS := -std=gnu99 -I. -fPIC
 LDFLAGS := -lm
+LIBDEPS := libspaceturtle.o
 MAJOR := 0
 MINOR := 1
 VERSION := $(MAJOR).$(MINOR)
@@ -19,11 +20,11 @@ install: library
 %.o: %.c lib$(NAME).h
 	$(CC) $(CFLAGS) $(LDFLAGS) -c $< -o $@
 
-test: lib$(NAME).o test.o
+test: $(LIBDEPS) test.o
 	$(CC) $(CFLAGS) $(LDFLAGS) $^ -o $@
 	chmod 755 $@
 
-lib$(NAME).so.$(VERSION): lib$(NAME).o
+lib$(NAME).so.$(VERSION): $(LIBDEPS)
 	$(CC) $(CFLAGS) $(LDFLAGS) $< -shared -Wl,-soname,lib$(NAME).so.$(MAJOR) -o $@
 
 clean:
