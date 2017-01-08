@@ -1,3 +1,4 @@
+NAME := spaceturtle
 CC := gcc
 CFLAGS := -std=gnu99 -I. -fPIC
 LDFLAGS := -lm
@@ -6,29 +7,29 @@ MINOR := 1
 VERSION := $(MAJOR).$(MINOR)
 PREFIX := /usr
 
-library: libspaceturtle.so.$(VERSION)
+library: lib$(NAME).so.$(VERSION)
 
 install: library
-	cp libspaceturtle.so.$(VERSION) $(PREFIX)/lib/
-	cp libspaceturtle.h $(PREFIX)/include/
+	cp lib$(NAME).so.$(VERSION) $(PREFIX)/lib/
+	cp lib$(NAME).h $(PREFIX)/include/
 	ldconfig -n $(PREFIX)/lib/
-	rm -f $(PREFIX)/lib/libspaceturtle.so
-	ln -s $(PREFIX)/lib/libspaceturtle.so.$(MAJOR) $(PREFIX)/lib/libspaceturtle.so
+	rm -f $(PREFIX)/lib/lib$(NAME).so
+	ln -s $(PREFIX)/lib/lib$(NAME).so.$(MAJOR) $(PREFIX)/lib/lib$(NAME).so
 
-%.o: %.c libspaceturtle.h
+%.o: %.c lib$(NAME).h
 	$(CC) $(CFLAGS) $(LDFLAGS) -c $< -o $@
 
-test: libspaceturtle.o test.o
+test: lib$(NAME).o test.o
 	$(CC) $(CFLAGS) $(LDFLAGS) $^ -o $@
 	chmod 755 $@
 
-libspaceturtle.so.$(VERSION): libspaceturtle.o
-	$(CC) $(CFLAGS) $(LDFLAGS) $< -shared -Wl,-soname,libspaceturtle.so.$(MAJOR) -o $@
+lib$(NAME).so.$(VERSION): lib$(NAME).o
+	$(CC) $(CFLAGS) $(LDFLAGS) $< -shared -Wl,-soname,lib$(NAME).so.$(MAJOR) -o $@
 
 clean:
 	rm -f *.o *.so.* *.so test
 
 uninstall:
-	rm -f $(PREFIX)/lib/libspaceturtle.so*
-	rm -f $(PREFIX)/include/libspaceturtle.h
+	rm -f $(PREFIX)/lib/lib$(NAME).so*
+	rm -f $(PREFIX)/include/lib$(NAME).h
 	ldconfig -n $(PREFIX)/lib/
