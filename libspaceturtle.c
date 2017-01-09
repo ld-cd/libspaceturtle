@@ -6,7 +6,7 @@
 int step_forward(struct body * root, struct world_config config, unsigned long long int ticks){
   struct body * current_body1;
   struct body * current_body2;
-  double x_accel, y_accel, accel, x_dist, y_dist, distance;
+  double x_accel, y_accel, accel, x_dist, y_dist, distance, dvx, dvy;
   if(!root)
     return -1;
   for(unsigned long long int i = 0; i < ticks; i++){
@@ -31,10 +31,12 @@ int step_forward(struct body * root, struct world_config config, unsigned long l
 	y_accel += -1 * accel * (y_dist / distance);
 	current_body2 = current_body2 -> next;
       }
-      current_body1->xvel += x_accel / config.tickspersec;
-      current_body1->yvel += y_accel / config.tickspersec;
-      current_body1->xpos += current_body1->xvel / config.tickspersec;
-      current_body1->ypos += current_body1->yvel / config.tickspersec;
+      dvx = x_accel / config.tickspersec;
+      dvy = y_accel / config.tickspersec;
+      current_body1->xpos += (current_body1->xvel + (dvx / 2)) / config.tickspersec;
+      current_body1->ypos += (current_body1->yvel + (dvy / 2)) / config.tickspersec;
+      current_body1->xvel += dvx;
+      current_body1->yvel += dvy;
       current_body1 = current_body1->next;
     }
   }
@@ -44,7 +46,7 @@ int step_forward(struct body * root, struct world_config config, unsigned long l
 int step_forward3(struct body3 * root, struct world_config config, unsigned long long int ticks){
   struct body3 * current_body1;
   struct body3 * current_body2;
-  double x_accel, y_accel, z_accel, accel, x_dist, y_dist, z_dist, distance;
+  double x_accel, y_accel, z_accel, accel, x_dist, y_dist, z_dist, distance, dvx, dvy, dvz;
   if(!root)
     return -1;
   for(unsigned long long int i = 0; i < ticks; i++){
@@ -72,14 +74,55 @@ int step_forward3(struct body3 * root, struct world_config config, unsigned long
 	z_accel += -1 * accel * (z_dist / distance);
 	current_body2 = current_body2 -> next;
       }
-      current_body1->xvel += x_accel / config.tickspersec;
-      current_body1->yvel += y_accel / config.tickspersec;
-      current_body1->zvel += z_accel / config.tickspersec;
-      current_body1->xpos += current_body1->xvel / config.tickspersec;
-      current_body1->ypos += current_body1->yvel / config.tickspersec;
-      current_body1->zpos += current_body1->zvel / config.tickspersec;
+      dvx = x_accel / config.tickspersec;
+      dvy = y_accel / config.tickspersec;
+      dvz = z_accel / config.tickspersec;
+      current_body1->xpos += (current_body1->xvel + (dvx / 2)) / config.tickspersec;
+      current_body1->ypos += (current_body1->yvel + (dvy / 2)) / config.tickspersec;
+      current_body1->zpos += (current_body1->zvel + (dvz / 2)) / config.tickspersec;
+      current_body1->xvel += dvx;
+      current_body1->yvel += dvy;
+      current_body1->zvel += dvz;
       current_body1 = current_body1->next;
     }
+  }
+  return 0;
+}
+
+int step_forward_tctd(struct body * root, struct world_config config, unsigned long long ticks){
+  struct qtree * scratch1, * scratch2, * root_node;
+  struct body * scratchb1;
+  long double x_dist, y_dist, x_accel, y_accel, distance, accel;
+  root_node = create_qtree(root);
+  for(unsigned long long int i = 0; i < ticks; i++){
+    scratchb1 = root;
+    while(scratchb1){
+      scratch1 = scratchb1->privattribs;
+      scratch2 = scratch1->parent;
+      x_accel = 0;
+      y_accel = 0;
+      while(scratch2){
+	for(int p = 0; p <= 3; p++){
+	  if(scratch2->next_node[p] != scratch1){
+	    x_dist = scratchb1->xpos - scratch2->next_node[p]->cmx;
+	    y_dist = scratchb1->ypos - scratch2->next_node[p]->cmy;
+	    distance = sqrt(powl(x_dist, 2) + powl(y_dist, 2));
+	    accel = CALCACCEL(distance, scratch2->next_node[p]->mass);
+	    x_accel += -1 * accel * (x_dist / distance);
+	    y_accel += -1 * accel * (y_dist / distance);
+	  }
+	}
+	scratch1 = scratch2;
+	scratch2 = scratch1->parent;
+      }
+      scratchb1->xpos += scratchb1->xvel / config.tickspersec + 0.5 * x_accel * powl(config.tickspersec, -2);
+      scratchb1->ypos += scratchb1->yvel / config.tickspersec + 0.5 * y_accel * powl(config.tickspersec, -2);
+      scratchb1->xvel += scratchb1->xvel + x_accel / config.tickspersec;
+      scratchb1->yvel += scratchb1->yvel + y_accel / config.tickspersec;
+      scratchb1 = scratchb1->next;
+    }
+    delete_qtree(root_node);
+    root_node = create_qtree(root);
   }
   return 0;
 }
@@ -155,7 +198,7 @@ struct qtree * gen_qnode(struct body * root, long double x, long double y, long 
     scratch1 = scratch1->next;
   }
   if(contained == 1){
-    tree = malloc(sizeof(struct qtree));
+    tree = malloc(sizeof(struct qtree)); // this malloc and the coresponding free are going to be expensive, try to reuse memory.
     tree->next_node[0] = NULL;
     tree->next_node[1] = NULL;
     tree->next_node[2] = NULL;
@@ -189,6 +232,7 @@ struct qtree * gen_qnode(struct body * root, long double x, long double y, long 
     return NULL;
   if(contained == 1){
     tree->cbody = scratch1;
+    scratch1->privattribs = tree;
     tree->cmx = scratch1->xpos;
     tree->cmy = scratch1->ypos;
     tree->mass = scratch1->mass;
@@ -238,23 +282,32 @@ struct qtree * create_qtree(struct body * root){
   long double maxx, maxy, minx, miny;
   if(!root)
     return NULL;
-  maxx = root->xpos;
-  minx = root->xpos;
-  maxy = root->ypos;
-  miny = root->ypos;
+  maxx = root->xpos + 1;
+  minx = root->xpos - 1;
+  maxy = root->ypos + 1;
+  miny = root->ypos - 1;
   while(scratch){
     if(scratch->xpos > maxx)
-      maxx = scratch->xpos;
+      maxx = scratch->xpos + 1;
     else if(scratch->xpos < minx)
-      minx = scratch->xpos;
+      minx = scratch->xpos - 1;
     if(scratch->ypos > maxy)
-      maxy = scratch->ypos;
+      maxy = scratch->ypos + 1;
     else if(scratch->ypos < miny)
-      miny = scratch->ypos;
+      miny = scratch->ypos - 1;
     scratch = scratch->next;
   }
   ret = gen_qnode(root, minx, miny, maxx - minx, maxy - miny);
+  ret->parent = NULL;
   return ret;
+}
+
+int delete_qtree(struct qtree * root){
+  for(int i = 0; i <= 3; i++)
+    if(root->next_node[i])
+      delete_qtree(root->next_node[i]);
+  free(root);
+  return 0;
 }
 
 struct body * delete_body(struct body * object, struct body * root){

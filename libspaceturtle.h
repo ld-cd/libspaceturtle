@@ -69,6 +69,7 @@ struct body3 * add_body3(long double xpos, long double ypos, long double zpos, l
 			 long double mass, long double radi, void * attribs, struct body3 * parent, struct body3 * root);
 struct qtree * create_qtree(struct body * root);
 //struct octree * create_octree(struct body3 * root);
+int delete_qtree(struct qtree * root);
 
 struct body * delete_body(struct body * object, struct body * root);
 struct body3 * delete_body3(struct body3 * object, struct body3 * root);
