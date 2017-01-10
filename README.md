@@ -20,9 +20,7 @@ You can then add further bodies to that list like so:
 
 ```C
 add_body(xposition, yposition, xvelocity, yvelocity, mass, radius, NULL, NULL, root);
-
 /* the first pointer can be a pointer to an attribute your application requires,
-
 the second can be a pointer to a parent body making position and velocity an offset from that body */
 ```
 
@@ -30,11 +28,8 @@ To run the simulation pick a solver and do the following:
 
 ```C
 struct world_config system;
-
 system.tickspersec; // specifys the number of ticks in a second
-
 // add _tctd to use the Barnes-Hut method
-
 step_forward(root, system, 1000); // this runs the simulation forward 1000 ticks;
 ```
 
