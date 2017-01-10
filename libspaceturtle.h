@@ -62,6 +62,7 @@ struct world_config{
 
 int step_forward(struct body * root, struct world_config config, unsigned long long int ticks);
 int step_forward3(struct body3 * root, struct world_config config, unsigned long long int ticks);
+int step_forward_tctd(struct body * root, struct world_config config, unsigned long long ticks);
 
 struct body * add_body(long double xpos, long double ypos, long double xvel, long double yvel, long double mass,
 		       long double radi, void * attribs, struct body * parent, struct body * root);

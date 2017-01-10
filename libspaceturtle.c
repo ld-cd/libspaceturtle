@@ -1,6 +1,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
+
 #include "libspaceturtle.h"
 
 int step_forward(struct body * root, struct world_config config, unsigned long long int ticks){
@@ -92,7 +93,7 @@ int step_forward3(struct body3 * root, struct world_config config, unsigned long
 int step_forward_tctd(struct body * root, struct world_config config, unsigned long long ticks){
   struct qtree * scratch1, * scratch2, * root_node;
   struct body * scratchb1;
-  long double x_dist, y_dist, x_accel, y_accel, distance, accel;
+  long double x_dist, y_dist, x_accel, y_accel, distance, accel, dvx, dvy;
   root_node = create_qtree(root);
   for(unsigned long long int i = 0; i < ticks; i++){
     scratchb1 = root;
@@ -103,22 +104,26 @@ int step_forward_tctd(struct body * root, struct world_config config, unsigned l
       y_accel = 0;
       while(scratch2){
 	for(int p = 0; p <= 3; p++){
-	  if(scratch2->next_node[p] != scratch1){
-	    x_dist = scratchb1->xpos - scratch2->next_node[p]->cmx;
-	    y_dist = scratchb1->ypos - scratch2->next_node[p]->cmy;
-	    distance = sqrt(powl(x_dist, 2) + powl(y_dist, 2));
-	    accel = CALCACCEL(distance, scratch2->next_node[p]->mass);
-	    x_accel += -1 * accel * (x_dist / distance);
-	    y_accel += -1 * accel * (y_dist / distance);
+	  if(scratch2->next_node[p]){
+	    if(scratch2->next_node[p] != scratch1){
+	      x_dist = scratchb1->xpos - scratch2->next_node[p]->cmx;
+	      y_dist = scratchb1->ypos - scratch2->next_node[p]->cmy;
+	      distance = sqrt(powl(x_dist, 2) + powl(y_dist, 2));
+	      accel = CALCACCEL(distance, scratch2->next_node[p]->mass);
+	      x_accel += -1 * accel * (x_dist / distance);
+	      y_accel += -1 * accel * (y_dist / distance);
+	    }
 	  }
 	}
 	scratch1 = scratch2;
 	scratch2 = scratch1->parent;
       }
-      scratchb1->xpos += scratchb1->xvel / config.tickspersec + 0.5 * x_accel * powl(config.tickspersec, -2);
-      scratchb1->ypos += scratchb1->yvel / config.tickspersec + 0.5 * y_accel * powl(config.tickspersec, -2);
-      scratchb1->xvel += scratchb1->xvel + x_accel / config.tickspersec;
-      scratchb1->yvel += scratchb1->yvel + y_accel / config.tickspersec;
+      dvx = x_accel / config.tickspersec;
+      dvy = y_accel / config.tickspersec;
+      scratchb1->xpos += (scratchb1->xvel + (dvx / 2)) / config.tickspersec;
+      scratchb1->ypos += (scratchb1->yvel + (dvy / 2)) / config.tickspersec;
+      scratchb1->xvel += dvx;
+      scratchb1->yvel += dvy;
       scratchb1 = scratchb1->next;
     }
     delete_qtree(root_node);
@@ -188,21 +193,21 @@ struct body3 * add_body3(long double xpos, long double ypos, long double zpos, l
 struct qtree * gen_qnode(struct body * root, long double x, long double y, long double w, long double h){
   struct body * scratch1 = root, * scratch2 = root;
   long double cmx = 0, cmy = 0, mass = 0;
-  long double contained = 0;
+  int contained = 0;
   struct qtree * tree = NULL;
   while(scratch1){
     if((scratch1->xpos > x && scratch1->xpos <= x + w) && (scratch1->ypos > y && scratch1->ypos <= y + h)){
       contained++;
-      break;
     }
     scratch1 = scratch1->next;
   }
-  if(contained == 1){
+  if(contained > 1){
     tree = malloc(sizeof(struct qtree)); // this malloc and the coresponding free are going to be expensive, try to reuse memory.
     tree->next_node[0] = NULL;
     tree->next_node[1] = NULL;
     tree->next_node[2] = NULL;
     tree->next_node[3] = NULL;
+    contained = 0;
     while(scratch2){
       if((scratch2->xpos > x && scratch2->xpos <= x + w) && (scratch2->ypos > y && scratch2->ypos <= y + h)){
 	contained++;
@@ -223,14 +228,27 @@ struct qtree * gen_qnode(struct body * root, long double x, long double y, long 
 	}
 	if((scratch2->xpos > x + (w / 2) && scratch2->xpos <= x + w) && (scratch2->ypos > y + (h / 2) && scratch2->ypos <= y + h)){
 	  if(!tree->next_node[3]){
-	    tree->next_node[3] = gen_qnode(root, x + (w / 2), y + (h / 2), w / 2, h / 2);
+            tree->next_node[3] = gen_qnode(root, x + (w / 2), y + (h / 2), w / 2, h / 2);
 	  }
 	}
       }
+      scratch2 = scratch2->next;
     }
-  } else
+  } else if(contained == 0)
     return NULL;
   if(contained == 1){
+    scratch1 = root;
+    while(scratch1){
+      if((scratch1->xpos > x && scratch1->xpos <= x + w) && (scratch1->ypos > y && scratch1->ypos <= y + h)){
+	break;
+      }
+      scratch1 = scratch1->next;
+    }
+    tree = malloc(sizeof(struct qtree));
+    tree->next_node[0] = NULL;
+    tree->next_node[1] = NULL;
+    tree->next_node[2] = NULL;
+    tree->next_node[3] = NULL;
     tree->cbody = scratch1;
     scratch1->privattribs = tree;
     tree->cmx = scratch1->xpos;
