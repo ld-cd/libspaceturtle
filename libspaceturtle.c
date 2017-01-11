@@ -282,34 +282,15 @@ struct qtree * gen_qnode(struct body * root, long double x, long double y, long 
     tree->h = h;
     return tree;
   }
-  if(quads[0]){
-    cmx += tree->next_node[0]->cmx / contained;
-    cmy += tree->next_node[0]->cmy / contained;
-    mass += tree->next_node[0]->mass;
-    tree->next_node[0]->parent = tree;
-  } else if(tree->next_node[0])
-    delete_qtree(tree->next_node[0]);
-  if(quads[1]){
-    cmx += tree->next_node[1]->cmx / contained;
-    cmy += tree->next_node[1]->cmy / contained;
-    mass += tree->next_node[1]->mass;
-    tree->next_node[1]->parent = tree;
-  } else if(tree->next_node[1])
-    delete_qtree(tree->next_node[1]);
-  if(quads[2]){
-    cmx += tree->next_node[2]->cmx / contained;
-    cmy += tree->next_node[2]->cmy / contained;
-    mass += tree->next_node[2]->mass;
-    tree->next_node[2]->parent = tree;
-  } else if(tree->next_node[2])
-    delete_qtree(tree->next_node[2]);
-  if(quads[3]){
-    cmx += tree->next_node[3]->cmx / contained;
-    cmy += tree->next_node[3]->cmy / contained;
-    mass += tree->next_node[3]->mass;
-    tree->next_node[3]->parent = tree;
-  } else if(tree->next_node[3])
-    delete_qtree(tree->next_node[3]);
+  for(int i = 0; i <= 3; i++){
+    if(quads[i]){
+      cmx += tree->next_node[i]->cmx / contained;
+      cmy += tree->next_node[i]->cmy / contained;
+      mass += tree->next_node[i]->mass;
+      tree->next_node[i]->parent = tree;
+    } else if(tree->next_node[i])
+      delete_qtree(tree->next_node[i]);
+  }
   tree->cmx = cmx;
   tree->cmy = cmy;
   tree->mass = mass;
@@ -326,22 +307,22 @@ struct qtree * create_qtree(struct body * root, struct qtree * root_node){
   long double maxx, maxy, minx, miny;
   if(!root)
     return NULL;
-  maxx = root->xpos + 1;
-  minx = root->xpos - 1;
-  maxy = root->ypos + 1;
-  miny = root->ypos - 1;
+  maxx = root->xpos;
+  minx = root->xpos;
+  maxy = root->ypos;
+  miny = root->ypos;
   while(scratch){
     if(scratch->xpos > maxx)
-      maxx = scratch->xpos + 1;
+      maxx = scratch->xpos;
     else if(scratch->xpos < minx)
-      minx = scratch->xpos - 1;
+      minx = scratch->xpos;
     if(scratch->ypos > maxy)
-      maxy = scratch->ypos + 1;
+      maxy = scratch->ypos;
     else if(scratch->ypos < miny)
-      miny = scratch->ypos - 1;
+      miny = scratch->ypos;
     scratch = scratch->next;
   }
-  ret = gen_qnode(root, minx, miny, maxx - minx, maxy - miny, root_node);
+  ret = gen_qnode(root, minx - 0.5, miny - 0.5, maxx + 1 - minx, maxy + 1 - miny, root_node);
   ret->parent = NULL;
   return ret;
 }
@@ -352,6 +333,10 @@ int delete_qtree(struct qtree * root){
   for(int i = 0; i <= 3; i++)
     if(root->next_node[i])
       delete_qtree(root->next_node[i]);
+  if(root->parent)
+    for(int i = 0; i <= 3; i++)
+      if(root == root->parent->next_node[i])
+	root->parent->next_node[i] = NULL;
   free(root);
   return 0;
 }
