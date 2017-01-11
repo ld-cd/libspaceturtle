@@ -3,7 +3,8 @@
 #include <math.h>
 
 #define G 0.0000000000667408
-#define CALCACCEL(d, m) G * m / (d * d)
+#define CALCACCEL(d2, m) G * m / (d2)
+#define SQUARE(x) x * x
 
 struct body{
   long double xpos; // meters
@@ -68,7 +69,7 @@ struct body * add_body(long double xpos, long double ypos, long double xvel, lon
 		       long double radi, void * attribs, struct body * parent, struct body * root);
 struct body3 * add_body3(long double xpos, long double ypos, long double zpos, long double xvel, long double yvel, long double zvel,
 			 long double mass, long double radi, void * attribs, struct body3 * parent, struct body3 * root);
-struct qtree * create_qtree(struct body * root);
+struct qtree * create_qtree(struct body * root, struct qtree * root_node);
 //struct octree * create_octree(struct body3 * root);
 int delete_qtree(struct qtree * root);
 

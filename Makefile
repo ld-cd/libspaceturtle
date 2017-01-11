@@ -1,6 +1,6 @@
 NAME := spaceturtle
 CC := gcc
-CFLAGS := -O3 -std=gnu99 -I. -fPIC
+CFLAGS := -g -O3 -std=gnu99 -I. -fPIC
 LDFLAGS := -lm
 LIBDEPS := libspaceturtle.o
 MAJOR := 0

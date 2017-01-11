@@ -7,7 +7,7 @@
 int step_forward(struct body * root, struct world_config config, unsigned long long int ticks){
   struct body * current_body1;
   struct body * current_body2;
-  double x_accel, y_accel, accel, x_dist, y_dist, distance, dvx, dvy;
+  long double x_accel, y_accel, accel, x_dist, y_dist, distance, dvx, dvy;
   if(!root)
     return -1;
   for(unsigned long long int i = 0; i < ticks; i++){
@@ -26,8 +26,9 @@ int step_forward(struct body * root, struct world_config config, unsigned long l
 	  break;
 	x_dist = current_body1->xpos - current_body2->xpos;
 	y_dist = current_body1->ypos - current_body2->ypos;
-	distance = sqrt(powl(x_dist, 2) + powl(y_dist, 2));
+	distance = SQUARE(x_dist) + SQUARE(y_dist);
 	accel = CALCACCEL(distance, current_body2->mass);
+	distance = sqrtl(distance);
 	x_accel += -1 * accel * (x_dist / distance);
 	y_accel += -1 * accel * (y_dist / distance);
 	current_body2 = current_body2 -> next;
@@ -68,12 +69,12 @@ int step_forward3(struct body3 * root, struct world_config config, unsigned long
 	x_dist = current_body1->xpos - current_body2->xpos;
 	y_dist = current_body1->ypos - current_body2->ypos;
 	z_dist = current_body1->zpos - current_body2->zpos;
-	distance = sqrt(powl(x_dist, 2) + powl(y_dist, 2) + powl(z_dist, 2));
+	distance = SQUARE(x_dist) + SQUARE(y_dist) + SQUARE(z_dist);
 	accel = CALCACCEL(distance, current_body2->mass);
+	distance = sqrtl(distance);
 	x_accel += -1 * accel * (x_dist / distance);
 	y_accel += -1 * accel * (y_dist / distance);
 	z_accel += -1 * accel * (z_dist / distance);
-	current_body2 = current_body2 -> next;
       }
       dvx = x_accel / config.tickspersec;
       dvy = y_accel / config.tickspersec;
@@ -94,7 +95,7 @@ int step_forward_tctd(struct body * root, struct world_config config, unsigned l
   struct qtree * scratch1, * scratch2, * root_node;
   struct body * scratchb1;
   long double x_dist, y_dist, x_accel, y_accel, distance, accel, dvx, dvy;
-  root_node = create_qtree(root);
+  root_node = create_qtree(root, NULL);
   for(unsigned long long int i = 0; i < ticks; i++){
     scratchb1 = root;
     while(scratchb1){
@@ -107,9 +108,10 @@ int step_forward_tctd(struct body * root, struct world_config config, unsigned l
 	  if(scratch2->next_node[p]){
 	    if(scratch2->next_node[p] != scratch1){
 	      x_dist = scratchb1->xpos - scratch2->next_node[p]->cmx;
-	      y_dist = scratchb1->ypos - scratch2->next_node[p]->cmy;
-	      distance = sqrt(powl(x_dist, 2) + powl(y_dist, 2));
+	      y_dist = scratchb1->ypos - scratch2->next_node[p]->cmx;
+	      distance = SQUARE(x_dist) + SQUARE(y_dist);
 	      accel = CALCACCEL(distance, scratch2->next_node[p]->mass);
+	      distance = sqrtl(distance);
 	      x_accel += -1 * accel * (x_dist / distance);
 	      y_accel += -1 * accel * (y_dist / distance);
 	    }
@@ -126,9 +128,9 @@ int step_forward_tctd(struct body * root, struct world_config config, unsigned l
       scratchb1->yvel += dvy;
       scratchb1 = scratchb1->next;
     }
-    delete_qtree(root_node);
-    root_node = create_qtree(root);
+    root_node = create_qtree(root, root_node);
   }
+  delete_qtree(root_node);
   return 0;
 }
 
@@ -190,10 +192,11 @@ struct body3 * add_body3(long double xpos, long double ypos, long double zpos, l
   return object;
 }
 
-struct qtree * gen_qnode(struct body * root, long double x, long double y, long double w, long double h){
+struct qtree * gen_qnode(struct body * root, long double x, long double y, long double w, long double h, struct qtree * freemem){
   struct body * scratch1 = root, * scratch2 = root;
   long double cmx = 0, cmy = 0, mass = 0;
   int contained = 0;
+  int quads[4];
   struct qtree * tree = NULL;
   while(scratch1){
     if((scratch1->xpos > x && scratch1->xpos <= x + w) && (scratch1->ypos > y && scratch1->ypos <= y + h)){
@@ -202,40 +205,52 @@ struct qtree * gen_qnode(struct body * root, long double x, long double y, long 
     scratch1 = scratch1->next;
   }
   if(contained > 1){
-    tree = malloc(sizeof(struct qtree)); // this malloc and the coresponding free are going to be expensive, try to reuse memory.
-    tree->next_node[0] = NULL;
-    tree->next_node[1] = NULL;
-    tree->next_node[2] = NULL;
-    tree->next_node[3] = NULL;
+    if(freemem)
+      tree = freemem;
+    else{
+      tree = malloc(sizeof(struct qtree)); // this malloc and the coresponding free are going to be expensive, try to reuse memory.
+      tree->next_node[0] = NULL;
+      tree->next_node[1] = NULL;
+      tree->next_node[2] = NULL;
+      tree->next_node[3] = NULL;
+    }
+    quads[0] = 0;quads[1] = 0;quads[2] = 0;quads[3] = 0;
     contained = 0;
     while(scratch2){
       if((scratch2->xpos > x && scratch2->xpos <= x + w) && (scratch2->ypos > y && scratch2->ypos <= y + h)){
 	contained++;
 	if((scratch2->xpos > x && scratch2->xpos <= x + (w / 2)) && (scratch2->ypos > y && scratch2->ypos <= y + (h / 2))){
-	  if(!tree->next_node[0]){
-	    tree->next_node[0] = gen_qnode(root, x, y, w / 2, h / 2);
+	  if(!quads[0]){
+	    tree->next_node[0] = gen_qnode(root, x, y, w / 2, h / 2, tree->next_node[0]);
+	    quads[0] = 1;
 	  }
 	}
 	if((scratch2->xpos > x + (w / 2) && scratch2->xpos <= x + w) && (scratch2->ypos > y && scratch2->ypos <= y + (h / 2))){
-	  if(!tree->next_node[1]){
-	    tree->next_node[1] = gen_qnode(root, x + (w / 2), y, w / 2, h / 2);
+	  if(!quads[1]){
+	    tree->next_node[1] = gen_qnode(root, x + (w / 2), y, w / 2, h / 2, tree->next_node[1]);
+	    quads[1] = 1;
 	  }
 	}
 	if((scratch2->xpos > x && scratch2->xpos <= x + (w / 2)) && (scratch2->ypos > y + (h / 2) && scratch2->ypos <= y + h)){
-	  if(!tree->next_node[2]){
-	    tree->next_node[2] = gen_qnode(root, x, y + (h / 2), w / 2, h / 2);
+	  if(!quads[2]){
+	    tree->next_node[2] = gen_qnode(root, x, y + (h / 2), w / 2, h / 2, tree->next_node[2]);
+	    quads[2] = 1;
 	  }
 	}
 	if((scratch2->xpos > x + (w / 2) && scratch2->xpos <= x + w) && (scratch2->ypos > y + (h / 2) && scratch2->ypos <= y + h)){
-	  if(!tree->next_node[3]){
-            tree->next_node[3] = gen_qnode(root, x + (w / 2), y + (h / 2), w / 2, h / 2);
+	  if(!quads[3]){
+            tree->next_node[3] = gen_qnode(root, x + (w / 2), y + (h / 2), w / 2, h / 2, tree->next_node[3]);
+	    quads[3] = 1;
 	  }
 	}
       }
       scratch2 = scratch2->next;
     }
-  } else if(contained == 0)
+  } else if(contained == 0){
+    if(freemem)
+      delete_qtree(freemem);
     return NULL;
+  }
   if(contained == 1){
     scratch1 = root;
     while(scratch1){
@@ -244,7 +259,14 @@ struct qtree * gen_qnode(struct body * root, long double x, long double y, long 
       }
       scratch1 = scratch1->next;
     }
-    tree = malloc(sizeof(struct qtree));
+    if(freemem){
+      tree = freemem;
+      delete_qtree(tree->next_node[0]);
+      delete_qtree(tree->next_node[1]);
+      delete_qtree(tree->next_node[2]);
+      delete_qtree(tree->next_node[3]);
+    } else
+      tree = malloc(sizeof(struct qtree));
     tree->next_node[0] = NULL;
     tree->next_node[1] = NULL;
     tree->next_node[2] = NULL;
@@ -260,30 +282,34 @@ struct qtree * gen_qnode(struct body * root, long double x, long double y, long 
     tree->h = h;
     return tree;
   }
-  if(tree->next_node[0]){
+  if(quads[0]){
     cmx += tree->next_node[0]->cmx / contained;
     cmy += tree->next_node[0]->cmy / contained;
     mass += tree->next_node[0]->mass;
     tree->next_node[0]->parent = tree;
-  }
-  if(tree->next_node[1]){
+  } else if(tree->next_node[0])
+    delete_qtree(tree->next_node[0]);
+  if(quads[1]){
     cmx += tree->next_node[1]->cmx / contained;
     cmy += tree->next_node[1]->cmy / contained;
     mass += tree->next_node[1]->mass;
     tree->next_node[1]->parent = tree;
-  }
-  if(tree->next_node[2]){
+  } else if(tree->next_node[1])
+    delete_qtree(tree->next_node[1]);
+  if(quads[2]){
     cmx += tree->next_node[2]->cmx / contained;
     cmy += tree->next_node[2]->cmy / contained;
     mass += tree->next_node[2]->mass;
     tree->next_node[2]->parent = tree;
-  }
-  if(tree->next_node[3]){
+  } else if(tree->next_node[2])
+    delete_qtree(tree->next_node[2]);
+  if(quads[3]){
     cmx += tree->next_node[3]->cmx / contained;
     cmy += tree->next_node[3]->cmy / contained;
     mass += tree->next_node[3]->mass;
     tree->next_node[3]->parent = tree;
-  }
+  } else if(tree->next_node[3])
+    delete_qtree(tree->next_node[3]);
   tree->cmx = cmx;
   tree->cmy = cmy;
   tree->mass = mass;
@@ -294,7 +320,7 @@ struct qtree * gen_qnode(struct body * root, long double x, long double y, long 
   return tree;
 }
 
-struct qtree * create_qtree(struct body * root){
+struct qtree * create_qtree(struct body * root, struct qtree * root_node){
   struct qtree * ret;
   struct body * scratch = root;
   long double maxx, maxy, minx, miny;
@@ -315,12 +341,14 @@ struct qtree * create_qtree(struct body * root){
       miny = scratch->ypos - 1;
     scratch = scratch->next;
   }
-  ret = gen_qnode(root, minx, miny, maxx - minx, maxy - miny);
+  ret = gen_qnode(root, minx, miny, maxx - minx, maxy - miny, root_node);
   ret->parent = NULL;
   return ret;
 }
 
 int delete_qtree(struct qtree * root){
+  if(!root)
+    return 0;
   for(int i = 0; i <= 3; i++)
     if(root->next_node[i])
       delete_qtree(root->next_node[i]);

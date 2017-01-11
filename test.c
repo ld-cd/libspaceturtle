@@ -28,7 +28,6 @@ int main(){
     printf("minute: %5d, xpos: %12Lf, ypos: %12Lf, xvel: %12Lf, yvel: %12Lf\n", i + 1, cat->xpos / 1000, cat->ypos / 1000, cat->xvel, cat->yvel);
   }
   delete_body(NULL, earth);
-  
   /*srand(seed);
   root = add_body(rand(), rand(), rand(), rand(), rand(), 0, NULL, NULL, NULL);
   for(int i = 0; i < 299; i++){
