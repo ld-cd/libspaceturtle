@@ -6,6 +6,8 @@
 #define CALCACCEL(d2, m) G * m / (d2)
 #define SQUARE(x) x * x
 
+#define VECTOR_BITS 512 // this is so that loops get sizes that are efficiently vectorized
+
 struct body{
   long double xpos; // meters
   long double ypos; 

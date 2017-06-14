@@ -10,7 +10,7 @@ int main(){
   struct body * earth, * cat, * root;
   struct world_config ecsystem; //earthcatsystem
   unsigned int seed = rand();
-  time_t s, e;
+  clock_t s, e;
   ecsystem.tickspersec = 1000;
   
   earth = add_body(0, 0, 0, 0, 5.972 * powl(10, 24), 0, NULL, NULL, NULL);
@@ -28,15 +28,15 @@ int main(){
     printf("minute: %5d, xpos: %12Lf, ypos: %12Lf, xvel: %12Lf, yvel: %12Lf\n", i + 1, cat->xpos / 1000, cat->ypos / 1000, cat->xvel, cat->yvel);
   }
   delete_body(NULL, earth);
-  /*srand(seed);
+  srand(seed);
   root = add_body(rand(), rand(), rand(), rand(), rand(), 0, NULL, NULL, NULL);
   for(int i = 0; i < 299; i++){
     add_body(rand(), rand(), rand(), rand(), rand(), 0, NULL, NULL, root);
   }
-  s = time(NULL);
+  s = clock();
   step_forward(root, ecsystem, 1000);
-  e = time(NULL);
-  printf("%fs\n", difftime(e, s));
+  e = clock();
+  printf("%fs\n", (double) (e - s) / CLOCKS_PER_SEC);
   delete_body(NULL, root);
   
   srand(seed);
@@ -44,11 +44,11 @@ int main(){
   for(int i = 0; i < 299; i++){
     add_body(rand(), rand(), rand(), rand(), rand(), 0, NULL, NULL, root);
   }
-  s = time(NULL);
+  s = clock();
   step_forward_tctd(root, ecsystem, 1000);
-  e = time(NULL);
-  printf("%fs\n", difftime(e, s));
-  delete_body(NULL, root);*/
+  e = clock();
+  printf("%fs\n", (double) (e - s) / CLOCKS_PER_SEC);
+  delete_body(NULL, root);
   
   return 0;
 }

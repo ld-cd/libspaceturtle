@@ -4,42 +4,47 @@
 
 #include "libspaceturtle.h"
 
+inline void calcaccel(struct body * cb1, struct body * cb2, long double * xa, long double * ya);
+inline void calcposndv(struct body * body, long double x_accel, long double y_accel, struct world_config config);
+
+unsigned long long countbodies(struct body * root);
+
 int step_forward(struct body * root, struct world_config config, unsigned long long int ticks){
   struct body * current_body1;
   struct body * current_body2;
-  long double x_accel, y_accel, accel, x_dist, y_dist, distance, dvx, dvy;
+  unsigned long long cindex = 0;
+  unsigned long long numbodies = countbodies(root);
+  long double x_accels[numbodies];
+  long double y_accels[numbodies];
   if(!root)
     return -1;
   for(unsigned long long int i = 0; i < ticks; i++){
     current_body1 = root;
-    while(current_body1 != NULL){
-      x_accel = 0;
-      y_accel = 0;
+    cindex = 0;
+    while(current_body1){
+      x_accels[cindex] = 0;
+      y_accels[cindex] = 0;
       current_body2 = root;
-      while(current_body2 != NULL){
+      while(current_body2){
 	while((current_body2->next == current_body1->next) || (current_body2->mass == 0.0)){
 	  current_body2 = current_body2->next;
-	  if(current_body2 == NULL)
+	  if(!current_body2)
 	    break;
 	}
-	if(current_body2 == NULL)
+	if(!current_body2)
 	  break;
-	x_dist = current_body1->xpos - current_body2->xpos;
-	y_dist = current_body1->ypos - current_body2->ypos;
-	distance = SQUARE(x_dist) + SQUARE(y_dist);
-	accel = CALCACCEL(distance, current_body2->mass);
-	distance = sqrtl(distance);
-	x_accel += -1 * accel * (x_dist / distance);
-	y_accel += -1 * accel * (y_dist / distance);
+	calcaccel(current_body1, current_body2, &x_accels[cindex], &y_accels[cindex]);
 	current_body2 = current_body2 -> next;
       }
-      dvx = x_accel / config.tickspersec;
-      dvy = y_accel / config.tickspersec;
-      current_body1->xpos += (current_body1->xvel + (dvx / 2)) / config.tickspersec;
-      current_body1->ypos += (current_body1->yvel + (dvy / 2)) / config.tickspersec;
-      current_body1->xvel += dvx;
-      current_body1->yvel += dvy;
       current_body1 = current_body1->next;
+      cindex++;
+    }
+    current_body1 = root;
+    cindex = 0;
+    while(current_body1){  //having this loop here is both more correct and easier to vectorize than the old way
+      calcposndv(current_body1, x_accels[cindex], y_accels[cindex], config);
+      current_body1 = current_body1->next;
+      cindex++;
     }
   }
   return 0;
@@ -132,6 +137,36 @@ int step_forward_tctd(struct body * root, struct world_config config, unsigned l
   }
   delete_qtree(root_node);
   return 0;
+}
+
+inline void calcaccel(struct body * cb1, struct body * cb2, long double * xa, long double * ya){
+  long double accel, x_dist, y_dist, distance;
+  x_dist = cb1->xpos - cb2->xpos;
+  y_dist = cb1->ypos - cb2->ypos;
+  distance = SQUARE(x_dist) + SQUARE(y_dist);
+  accel = CALCACCEL(distance, cb2->mass);
+  distance = sqrtl(distance);
+  *xa += -1 * accel * (x_dist / distance);
+  *ya += -1 * accel * (y_dist / distance);
+}
+
+inline void calcposndv(struct body * body, long double x_accel, long double y_accel, struct world_config config){
+  long double dvx, dvy;
+  dvx = x_accel / config.tickspersec;
+  dvy = y_accel / config.tickspersec;
+  body->xpos += (body->xvel + (dvx / 2)) / config.tickspersec;
+  body->ypos += (body->yvel + (dvy / 2)) / config.tickspersec;
+  body->xvel += dvx;
+  body->yvel += dvy;
+}
+
+unsigned long long countbodies(struct body * root){
+  unsigned long long ret = 0;
+  while(root){
+    ret++;
+    root = root->next;
+  }
+  return ret;
 }
 
 struct body * add_body(long double xpos, long double ypos, long double xvel, long double yvel, long double mass,
