@@ -6,8 +6,11 @@
 
 inline void calcaccel(struct body * cb1, struct body * cb2, long double * xa, long double * ya);
 inline void calcposndv(struct body * body, long double x_accel, long double y_accel, struct world_config config);
+inline void calcaccel3(struct body3 * cb1, struct body3 * cb2, long double * xa, long double * ya, long double * za);
+inline void calcposndv3(struct body3 * body, long double x_accel, long double y_accel, long double z_accel, struct world_config config);
 
 unsigned long long countbodies(struct body * root);
+unsigned long long countbodies3(struct body3 * root);
 
 int step_forward(struct body * root, struct world_config config, unsigned long long int ticks){
   struct body * current_body1;
@@ -53,44 +56,41 @@ int step_forward(struct body * root, struct world_config config, unsigned long l
 int step_forward3(struct body3 * root, struct world_config config, unsigned long long int ticks){
   struct body3 * current_body1;
   struct body3 * current_body2;
-  double x_accel, y_accel, z_accel, accel, x_dist, y_dist, z_dist, distance, dvx, dvy, dvz;
+  unsigned long long cindex = 0;
+  unsigned long long numbodies = countbodies3(root);
+  long double x_accels[numbodies];
+  long double y_accels[numbodies];
+  long double z_accels[numbodies];
   if(!root)
     return -1;
   for(unsigned long long int i = 0; i < ticks; i++){
     current_body1 = root;
-    while(current_body1 != NULL){
-      x_accel = 0;
-      y_accel = 0;
-      z_accel = 0;
+    cindex = 0;
+    while(current_body1){
+      x_accels[cindex] = 0;
+      y_accels[cindex] = 0;
+      z_accels[cindex] = 0;
       current_body2 = root;
-      while(current_body2 != NULL){
+      while(current_body2){
 	while((current_body2->next == current_body1->next) || (current_body2->mass == 0.0)){
-	  current_body2 = current_body2->next;
-	  if(current_body2 == NULL)
+          current_body2 = current_body2->next;
+	  if(!current_body2)
 	    break;
 	}
-	if(current_body2 == NULL)
-	  break;
-	x_dist = current_body1->xpos - current_body2->xpos;
-	y_dist = current_body1->ypos - current_body2->ypos;
-	z_dist = current_body1->zpos - current_body2->zpos;
-	distance = SQUARE(x_dist) + SQUARE(y_dist) + SQUARE(z_dist);
-	accel = CALCACCEL(distance, current_body2->mass);
-	distance = sqrtl(distance);
-	x_accel += -1 * accel * (x_dist / distance);
-	y_accel += -1 * accel * (y_dist / distance);
-	z_accel += -1 * accel * (z_dist / distance);
+        if(!current_body2)
+          break;
+        calcaccel3(current_body1, current_body2, &x_accels[cindex], &y_accels[cindex], &z_accels[cindex]);
+        current_body2 = current_body2 -> next;
       }
-      dvx = x_accel / config.tickspersec;
-      dvy = y_accel / config.tickspersec;
-      dvz = z_accel / config.tickspersec;
-      current_body1->xpos += (current_body1->xvel + (dvx / 2)) / config.tickspersec;
-      current_body1->ypos += (current_body1->yvel + (dvy / 2)) / config.tickspersec;
-      current_body1->zpos += (current_body1->zvel + (dvz / 2)) / config.tickspersec;
-      current_body1->xvel += dvx;
-      current_body1->yvel += dvy;
-      current_body1->zvel += dvz;
       current_body1 = current_body1->next;
+      cindex++;
+    }
+    current_body1 = root;
+    cindex = 0;
+    while(current_body1){  //having this loop here is both more correct and easier to vectorize than the old way
+      calcposndv3(current_body1, x_accels[cindex], y_accels[cindex], z_accels[cindex], config);
+      current_body1 = current_body1->next;
+      cindex++;
     }
   }
   return 0;
@@ -160,7 +160,42 @@ inline void calcposndv(struct body * body, long double x_accel, long double y_ac
   body->yvel += dvy;
 }
 
+inline void calcaccel3(struct body3 * cb1, struct body3 * cb2, long double * xa, long double * ya, long double * za){
+  long double accel, x_dist, y_dist, z_dist, distance;
+  x_dist = cb1->xpos - cb2->xpos;
+  y_dist = cb1->ypos - cb2->ypos;
+  z_dist = cb1->zpos - cb2->zpos;
+  distance = SQUARE(x_dist) + SQUARE(y_dist) + SQUARE(z_dist);
+  accel = CALCACCEL(distance, cb2->mass);
+  distance = sqrtl(distance);
+  *xa += -1 * accel * (x_dist / distance);
+  *ya += -1 * accel * (y_dist / distance);
+  *za += -1 * accel * (z_dist / distance);
+}
+
+inline void calcposndv3(struct body3 * body, long double x_accel, long double y_accel, long double z_accel, struct world_config config){
+  long double dvx, dvy, dvz;
+  dvx = x_accel / config.tickspersec;
+  dvy = y_accel / config.tickspersec;
+  dvz = z_accel / config.tickspersec;
+  body->xpos += (body->xvel + (dvx / 2)) / config.tickspersec;
+  body->ypos += (body->yvel + (dvy / 2)) / config.tickspersec;
+  body->zpos += (body->zvel + (dvz / 2)) / config.tickspersec;
+  body->xvel += dvx;
+  body->yvel += dvy;
+  body->zvel += dvz;
+}
+
 unsigned long long countbodies(struct body * root){
+  unsigned long long ret = 0;
+  while(root){
+    ret++;
+    root = root->next;
+  }
+  return ret;
+}
+
+unsigned long long countbodies3(struct body3 * root){
   unsigned long long ret = 0;
   while(root){
     ret++;
